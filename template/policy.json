@@ -1,0 +1,130 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "policyName": {
+      "type": "string",
+      "defaultValue": "RestrictToLabResources",
+      "metadata": {
+        "description": "Name of the policy definition"
+      }
+    }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/policyDefinitions",
+      "apiVersion": "2021-06-01",
+      "name": "[parameters('policyName')]",
+      "properties": {
+        "displayName": "Allow only Lab Resources with Specific Configurations",
+        "description": "This policy allows only Azure AI Search (Basic tier in East US), Storage Accounts (East US), and Azure Functions (Consumption tier in East US) to be created. All other resources are denied.",
+        "mode": "All",
+        "metadata": {
+          "category": "Resource Governance",
+          "version": "1.0.0"
+        },
+        "parameters": {},
+        "policyRule": {
+          "if": {
+            "anyOf": [
+              {
+                "allOf": [
+                  {
+                    "field": "type",
+                    "equals": "Microsoft.Search/searchServices"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "field": "location",
+                        "notEquals": "eastus"
+                      },
+                      {
+                        "field": "Microsoft.Search/searchServices/sku.name",
+                        "notEquals": "basic"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "field": "type",
+                    "equals": "Microsoft.Storage/storageAccounts"
+                  },
+                  {
+                    "field": "location",
+                    "notEquals": "eastus"
+                  }
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "field": "type",
+                    "equals": "Microsoft.Web/sites"
+                  },
+                  {
+                    "field": "kind",
+                    "like": "functionapp*"
+                  },
+                  {
+                    "field": "location",
+                    "notEquals": "eastus"
+                  }
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "field": "type",
+                    "equals": "Microsoft.Web/serverfarms"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "field": "location",
+                        "notEquals": "eastus"
+                      },
+                      {
+                        "field": "Microsoft.Web/serverfarms/sku.tier",
+                        "notEquals": "Dynamic"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "type",
+                "notIn": [
+                  "Microsoft.Search/searchServices",
+                  "Microsoft.Storage/storageAccounts",
+                  "Microsoft.Web/sites",
+                  "Microsoft.Web/serverfarms",
+                  "Microsoft.Resources/resourceGroups",
+                  "Microsoft.Resources/deployments",
+                  "Microsoft.Authorization/roleAssignments",
+                  "Microsoft.Authorization/policyAssignments",
+                  "Microsoft.Insights/components",
+                  "Microsoft.KeyVault/vaults",
+                  "Microsoft.ManagedIdentity/userAssignedIdentities"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "effect": "deny"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "policyDefinitionId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Authorization/policyDefinitions', parameters('policyName'))]"
+    }
+  }
+}
